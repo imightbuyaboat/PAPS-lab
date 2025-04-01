@@ -1,11 +1,11 @@
 <html>
     <body>
-        <h1>List</h1>
+        <h1>Телефонный справочник</h1>
         {{range .Items}}
             <p>{{.Id}}, {{.Organization}}, {{.Phone}}</p>
         {{end}}
         <form action="/" method="GET">
-            <button type="submit">Вернуться</button>
+            <button type="submit">Вернуться в главное меню</button>
         </form>
     </body>
 </html>

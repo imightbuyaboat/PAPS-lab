@@ -1,9 +1,15 @@
 <html>
     <body>
-        <h1>Delete</h1>
+        <h1>Удаление организации</h1>
+        {{range .Items}}
+            <p>{{.Id}}, {{.Organization}}, {{.Phone}}</p>
+        {{end}}
         <form action="/delete" method="post">
             ID:<input type="text" name="id"><br />
-            <input type="submit" value="Delete">
+            <input type="submit" value="Удалить">
+        </form>
+        <form action="/" method="GET">
+            <button type="submit">Вернуться в главное меню</button>
         </form>
     </body>
 </html>

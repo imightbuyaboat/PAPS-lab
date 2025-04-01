@@ -1,8 +1,17 @@
 <html>
     <body>
         <form action="/login" method="post">
-            Login:<input type="text" name="login"><br />
-            <input type="submit" value="Login">
+            Логин:<input type="text" name="login"><br />
+            Пароль:<input type="password" name="password"><br />
+            <input type="submit" value="Войти">
+        </form>
+        
+        {{ if .ErrorMsg }}
+        <p style="color: red;">{{ .ErrorMsg }}</p>
+        {{ end }}
+
+        <form action="/register" method="GET">
+            <button type="submit">Зарегистрироваться</button>
         </form>
     </body>
 </html>

@@ -1,6 +1,7 @@
 package main
 
 import (
+	passman "PAPS-LAB/passwordmanager"
 	sessman "PAPS-LAB/sessionmanager"
 	"PAPS-LAB/studiodb"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 
 type Handler struct {
 	sm   *sessman.SessionManager
+	pm   *passman.PasswordManager
 	db   *studiodb.DB
 	tmpl *template.Template
 }
@@ -35,6 +37,7 @@ func main() {
 
 	handlers := &Handler{
 		sm:   sessman.NewSessionManager(),
+		pm:   passman.NewPasswordManager(),
 		db:   db,
 		tmpl: template.Must(template.ParseFiles(files...)),
 	}
@@ -43,6 +46,8 @@ func main() {
 	r.HandleFunc("/", handlers.mainPage).Methods("GET")
 	r.HandleFunc("/login", handlers.loginPage).Methods("GET")
 	r.HandleFunc("/login", handlers.login).Methods("POST")
+	r.HandleFunc("/register", handlers.registerPage).Methods("GET")
+	r.HandleFunc("/register", handlers.register).Methods("POST")
 	r.HandleFunc("/logout", handlers.logout).Methods("POST")
 	r.HandleFunc("/list", handlers.listPage).Methods("GET")
 	r.HandleFunc("/add", handlers.addPage).Methods("GET")
