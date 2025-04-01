@@ -1,0 +1,11 @@
+<html>
+    <body>
+        <h1>List</h1>
+        {{range .Items}}
+            <p>ID: {{.Id}}, Organization: {{.Organization}}, Phone: {{.Phone}}</p>
+        {{end}}
+        <form action="/" method="GET">
+            <button type="submit">Вернуться</button>
+        </form>
+    </body>
+</html>
