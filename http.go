@@ -87,8 +87,8 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 	err := h.db.Insert(
 		studiodb.Item{
 			Id:           0,
-			Organization: r.FormValue("Organization"),
-			Phone:        r.FormValue("Phone"),
+			Organization: r.FormValue("organization"),
+			Phone:        r.FormValue("phone"),
 		})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
