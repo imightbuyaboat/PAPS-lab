@@ -43,6 +43,7 @@
 
     <h1>Телефонный справочник</h1>
 
+    {{if .ShowButtons}}
     <div class="actions">
         <button id="addBtn">Добавить запись</button>
         <button id="deleteBtn">Удалить запись</button>
@@ -52,6 +53,15 @@
             <input type="submit" value="Выйти">
         </form>
     </div>
+    {{else}}
+    <div class="actions">
+        <button id="searchBtn">Поиск</button>
+        
+        <form action="/logout" method="POST" style="display: inline;">
+            <input type="submit" value="Выйти">
+        </form>
+    </div>
+    {{end}}
 
     {{range .Items}}
         <p>{{.Id}}, {{.Organization}}, {{.City}}, {{.Phone}}</p>

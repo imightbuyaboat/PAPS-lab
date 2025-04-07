@@ -6,38 +6,38 @@ import (
 	"sync"
 )
 
-func CreateHash(password string) Hash {
+func CreateHash(password string) []byte {
 	h := sha256.New()
 	h.Write([]byte(password))
-	return Hash{hash: (h.Sum(nil))}
+	return h.Sum(nil)
 }
 
 func NewPasswordManager() *PasswordManager {
 	return &PasswordManager{
 		mu:    sync.RWMutex{},
-		users: map[string]*Hash{},
+		users: map[string]*Info{"admin": {CreateHash("admin"), true}},
 	}
 }
 
 func (pm *PasswordManager) Create(in *User) error {
 	hash := CreateHash(in.Password)
 	pm.mu.Lock()
-	pm.users[in.Login] = &hash
+	pm.users[in.Login] = &Info{Hash: hash, Priveleged: false}
 	pm.mu.Unlock()
 	return nil
 }
 
-func (pm *PasswordManager) Check(in *User) int {
+func (pm *PasswordManager) Check(in *User) (int, bool) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	if userHash, ok := pm.users[in.Login]; ok {
+	if userInfo, ok := pm.users[in.Login]; ok {
 		hash := CreateHash(in.Password)
-		if bytes.Equal(userHash.hash, hash.hash) {
-			return 0
+		if bytes.Equal(userInfo.Hash, hash) {
+			return 0, userInfo.Priveleged
 		}
-		return 1
+		return 1, false
 	}
-	return 2
+	return 2, false
 }
 
 func (pm *PasswordManager) CheckAvailableLogin(login string) int {

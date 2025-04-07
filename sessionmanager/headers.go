@@ -3,8 +3,9 @@ package sessionmanager
 import "sync"
 
 type Session struct {
-	Login     string
-	Useragent string
+	Login      string
+	Useragent  string
+	Priveleged bool
 }
 
 type SessionID struct {

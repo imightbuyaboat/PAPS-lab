@@ -23,7 +23,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 
 	var errorMsg string
 
-	errorID := h.pm.Check(&passman.User{
+	errorID, isPriv := h.pm.Check(&passman.User{
 		Login:    login,
 		Password: password,
 	})
@@ -44,8 +44,9 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID, err := h.sm.Create(&sessman.Session{
-		Login:     login,
-		Useragent: r.UserAgent(),
+		Login:      login,
+		Useragent:  r.UserAgent(),
+		Priveleged: isPriv,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -95,8 +96,9 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID, err := h.sm.Create(&sessman.Session{
-		Login:     login,
-		Useragent: r.UserAgent(),
+		Login:      login,
+		Useragent:  r.UserAgent(),
+		Priveleged: false,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -132,7 +134,18 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
-	err := h.db.Insert(
+	session, err := h.checkSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	} else if !session.Priveleged {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+
+	err = h.db.Insert(
 		studiodb.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
@@ -147,6 +160,17 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	session, err := h.checkSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	} else if !session.Priveleged {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -162,6 +186,17 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	session, err := h.checkSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	} else if !session.Priveleged {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+
 	items, err := h.db.SelectAny(
 		studiodb.Item{
 			Id:           0,
@@ -175,9 +210,11 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items []studiodb.Item
+		Items       []studiodb.Item
+		ShowButtons bool
 	}{
-		Items: items,
+		Items:       items,
+		ShowButtons: true,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -186,24 +223,12 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) returnToMainPage(w http.ResponseWriter, r *http.Request) {
-	items, err := h.db.SelectAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items []studiodb.Item
-	}{
-		Items: items,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
+	var isPriv bool
+
 	session, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -211,6 +236,8 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if session == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
+	} else {
+		isPriv = session.Priveleged
 	}
 
 	items, err := h.db.SelectAll()
@@ -220,9 +247,11 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items []studiodb.Item
+		Items       []studiodb.Item
+		ShowButtons bool
 	}{
-		Items: items,
+		Items:       items,
+		ShowButtons: isPriv,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

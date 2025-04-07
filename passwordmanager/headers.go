@@ -1,7 +1,6 @@
 package passwordmanager
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -10,19 +9,12 @@ type User struct {
 	Password string
 }
 
-type Hash struct {
-	hash []byte
+type Info struct {
+	Hash       []byte
+	Priveleged bool
 }
 
 type PasswordManager struct {
 	mu    sync.RWMutex
-	users map[string]*Hash
-}
-
-type MyError struct {
-	errorId int
-}
-
-func (me *MyError) Error() string {
-	return fmt.Sprint(me.errorId)
+	users map[string]*Info
 }
