@@ -56,7 +56,7 @@
     {{else}}
     <div class="actions">
         <button id="searchBtn">Поиск</button>
-        
+
         <form action="/logout" method="POST" style="display: inline;">
             <input type="submit" value="Выйти">
         </form>
@@ -67,7 +67,6 @@
         <p>{{.Id}}, {{.Organization}}, {{.City}}, {{.Phone}}</p>
     {{end}}
 
-    <!-- Модальное окно для добавления записи -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <span class="close" id="addClose">&times;</span>
@@ -84,7 +83,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно для удаления записи -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <span class="close" id="deleteClose">&times;</span>
@@ -97,7 +95,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно для поиска -->
     <div id="searchModal" class="modal">
         <div class="modal-content">
             <span class="close" id="searchClose">&times;</span>
@@ -110,44 +107,52 @@
                 <label>Телефон:</label><br>
                 <input type="text" name="phone"><br><br>
                 <button type="submit">Поиск</button>
-                <form action="/return" method="POST" style="display: inline;">
-                    <input type="submit" value="Очистить">
-                </form>
+            </form>
+            <form action="/return" method="POST" style="display: inline;">
+                <input type="submit" value="Очистить">
             </form>
         </div>
     </div>
 
     <script>
-        // Открытие модального окна для добавления записи
-        const addModal = document.getElementById("addModal");
-        const addBtn = document.getElementById("addBtn");
-        const addClose = document.getElementById("addClose");
+        document.addEventListener("DOMContentLoaded", function () {
+            //добавление
+            const addModal = document.getElementById("addModal");
+            const addBtn = document.getElementById("addBtn");
+            const addClose = document.getElementById("addClose");
 
-        addBtn.onclick = () => addModal.style.display = "block";
-        addClose.onclick = () => addModal.style.display = "none";
+            if (addBtn && addClose) {
+                addBtn.onclick = () => addModal.style.display = "block";
+                addClose.onclick = () => addModal.style.display = "none";
+            }
 
-        // Открытие модального окна для удаления записи
-        const deleteModal = document.getElementById("deleteModal");
-        const deleteBtn = document.getElementById("deleteBtn");
-        const deleteClose = document.getElementById("deleteClose");
+            //удаление
+            const deleteModal = document.getElementById("deleteModal");
+            const deleteBtn = document.getElementById("deleteBtn");
+            const deleteClose = document.getElementById("deleteClose");
 
-        deleteBtn.onclick = () => deleteModal.style.display = "block";
-        deleteClose.onclick = () => deleteModal.style.display = "none";
+            if (deleteBtn && deleteClose) {
+                deleteBtn.onclick = () => deleteModal.style.display = "block";
+                deleteClose.onclick = () => deleteModal.style.display = "none";
+            }
 
-        // Открытие модального окна для поиска записи
-        const searchModal = document.getElementById("searchModal");
-        const searchBtn = document.getElementById("searchBtn");
-        const searchClose = document.getElementById("searchClose");
+            //поиск
+            const searchModal = document.getElementById("searchModal");
+            const searchBtn = document.getElementById("searchBtn");
+            const searchClose = document.getElementById("searchClose");
 
-        searchBtn.onclick = () => searchModal.style.display = "block";
-        searchClose.onclick = () => searchModal.style.display = "none";
+            if (searchBtn && searchClose) {
+                searchBtn.onclick = () => searchModal.style.display = "block";
+                searchClose.onclick = () => searchModal.style.display = "none";
+            }
 
-        // Закрытие при клике вне окна
-        window.onclick = function(event) {
-            if (event.target == addModal) addModal.style.display = "none";
-            if (event.target == deleteModal) deleteModal.style.display = "none";
-            if (event.target == searchModal) searchModal.style.display = "none";
-        }
+            //закрытие по клику вне окна
+            window.onclick = function(event) {
+                if (event.target == addModal) addModal.style.display = "none";
+                if (event.target == deleteModal) deleteModal.style.display = "none";
+                if (event.target == searchModal) searchModal.style.display = "none";
+            };
+        });
     </script>
 
 </body>

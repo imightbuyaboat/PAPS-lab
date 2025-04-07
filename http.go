@@ -186,6 +186,8 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	var isPriv bool
+
 	session, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -193,8 +195,8 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 	if session == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-	} else if !session.Priveleged {
-		http.Redirect(w, r, "/", http.StatusFound)
+	} else {
+		isPriv = session.Priveleged
 	}
 
 	items, err := h.db.SelectAny(
@@ -214,7 +216,7 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 		ShowButtons bool
 	}{
 		Items:       items,
-		ShowButtons: true,
+		ShowButtons: isPriv,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
