@@ -49,11 +49,10 @@ func main() {
 	r.HandleFunc("/register", handlers.registerPage).Methods("GET")
 	r.HandleFunc("/register", handlers.register).Methods("POST")
 	r.HandleFunc("/logout", handlers.logout).Methods("POST")
-	r.HandleFunc("/list", handlers.listPage).Methods("GET")
-	r.HandleFunc("/add", handlers.addPage).Methods("GET")
 	r.HandleFunc("/add", handlers.add).Methods("POST")
-	r.HandleFunc("/delete", handlers.deletePage).Methods("GET")
 	r.HandleFunc("/delete", handlers.delete).Methods("POST")
+	r.HandleFunc("/search", handlers.search).Methods("POST")
+	r.HandleFunc("/return", handlers.returnToMainPage).Methods("POST")
 
 	fmt.Println("starting server at :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

@@ -1,17 +1,144 @@
+<!DOCTYPE html>
 <html>
-    <body>
-        <h1>Главное меню</h1>
-        <form action="/list" method="get">
-            <input type="submit" value="Показать телефонный справочник">
-        </form>
-        <form action="/add" method="get">
-            <input type="submit" value="Добавить организацию">
-        </form>
-        <form action="/delete" method="get">
-            <input type="submit" value="Удалить организацию">
-        </form>
-        <form action="/logout" method="post">
+<head>
+    <title>Телефонный справочник</title>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .actions {
+            margin-bottom: 20px;
+        }
+
+        .actions button,
+        .actions form {
+            display: inline-block;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Телефонный справочник</h1>
+
+    <div class="actions">
+        <button id="addBtn">Добавить запись</button>
+        <button id="deleteBtn">Удалить запись</button>
+        <button id="searchBtn">Поиск</button>
+
+        <form action="/logout" method="POST" style="display: inline;">
             <input type="submit" value="Выйти">
         </form>
-    </body>
+    </div>
+
+    {{range .Items}}
+        <p>{{.Id}}, {{.Organization}}, {{.City}}, {{.Phone}}</p>
+    {{end}}
+
+    <!-- Модальное окно для добавления записи -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="addClose">&times;</span>
+            <h3>Новая запись</h3>
+            <form action="/add" method="POST">
+                <label>Организация:</label><br>
+                <input type="text" name="organization" required><br>
+                <label>Город:</label><br>
+                <input type="text" name="city" required><br>
+                <label>Телефон:</label><br>
+                <input type="text" name="phone" required><br><br>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для удаления записи -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="deleteClose">&times;</span>
+            <h3>Удалить запись</h3>
+            <form action="/delete" method="POST">
+                <label>ID записи:</label><br>
+                <input type="number" name="id" required><br><br>
+                <button type="submit">Удалить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для поиска -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="searchClose">&times;</span>
+            <h3>Поиск записи</h3>
+            <form id="searchForm" action="/search" method="POST">
+                <label>Организация:</label><br>
+                <input type="text" name="organization"><br>
+                <label>Город:</label><br>
+                <input type="text" name="city"><br>
+                <label>Телефон:</label><br>
+                <input type="text" name="phone"><br><br>
+                <button type="submit">Поиск</button>
+                <form action="/return" method="POST" style="display: inline;">
+                    <input type="submit" value="Очистить">
+                </form>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Открытие модального окна для добавления записи
+        const addModal = document.getElementById("addModal");
+        const addBtn = document.getElementById("addBtn");
+        const addClose = document.getElementById("addClose");
+
+        addBtn.onclick = () => addModal.style.display = "block";
+        addClose.onclick = () => addModal.style.display = "none";
+
+        // Открытие модального окна для удаления записи
+        const deleteModal = document.getElementById("deleteModal");
+        const deleteBtn = document.getElementById("deleteBtn");
+        const deleteClose = document.getElementById("deleteClose");
+
+        deleteBtn.onclick = () => deleteModal.style.display = "block";
+        deleteClose.onclick = () => deleteModal.style.display = "none";
+
+        // Открытие модального окна для поиска записи
+        const searchModal = document.getElementById("searchModal");
+        const searchBtn = document.getElementById("searchBtn");
+        const searchClose = document.getElementById("searchClose");
+
+        searchBtn.onclick = () => searchModal.style.display = "block";
+        searchClose.onclick = () => searchModal.style.display = "none";
+
+        // Закрытие при клике вне окна
+        window.onclick = function(event) {
+            if (event.target == addModal) addModal.style.display = "none";
+            if (event.target == deleteModal) deleteModal.style.display = "none";
+            if (event.target == searchModal) searchModal.style.display = "none";
+        }
+    </script>
+
+</body>
 </html>

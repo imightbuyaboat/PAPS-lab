@@ -131,49 +131,6 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) listPage(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if session == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	items, err := h.db.SelectAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = h.tmpl.ExecuteTemplate(w, "list.html", struct {
-		Items []studiodb.Item
-	}{
-		Items: items,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (h *Handler) addPage(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if session == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	err = h.tmpl.ExecuteTemplate(w, "add.html", nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
 func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 	err := h.db.Insert(
 		studiodb.Item{
@@ -187,32 +144,6 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func (h *Handler) deletePage(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if session == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	items, err := h.db.SelectAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = h.tmpl.ExecuteTemplate(w, "delete.html", struct {
-		Items []studiodb.Item
-	}{
-		Items: items,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +161,48 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	items, err := h.db.SelectAny(
+		studiodb.Item{
+			Id:           0,
+			Organization: r.FormValue("organization"),
+			City:         r.FormValue("city"),
+			Phone:        r.FormValue("phone"),
+		})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
+		Items []studiodb.Item
+	}{
+		Items: items,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) returnToMainPage(w http.ResponseWriter, r *http.Request) {
+	items, err := h.db.SelectAll()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
+		Items []studiodb.Item
+	}{
+		Items: items,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	session, err := h.checkSession(r)
 	if err != nil {
@@ -240,9 +213,20 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 
-	err = h.tmpl.ExecuteTemplate(w, "index.html", nil)
+	items, err := h.db.SelectAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
+		Items []studiodb.Item
+	}{
+		Items: items,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
