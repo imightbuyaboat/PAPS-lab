@@ -44,9 +44,9 @@ func NewDB() (*DB, error) {
 }
 
 func (db *DB) Insert(i Item) error {
-	query := "INSERT INTO register (organization, phone) VALUES ($1, $2)"
+	query := "INSERT INTO register (organization, city, phone) VALUES ($1, $2, $3)"
 
-	_, err := db.Exec(query, i.Organization, i.Phone)
+	_, err := db.Exec(query, i.Organization, i.City, i.Phone)
 	return err
 }
 
@@ -61,7 +61,7 @@ func (db *DB) SelectAll() ([]Item, error) {
 	Items := []Item{}
 	for rows.Next() {
 		i := Item{}
-		err := rows.Scan(&i.Id, &i.Organization, &i.Phone)
+		err := rows.Scan(&i.Id, &i.Organization, &i.City, &i.Phone)
 		if err != nil {
 			return nil, err
 		}

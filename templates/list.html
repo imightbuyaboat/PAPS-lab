@@ -2,7 +2,7 @@
     <body>
         <h1>Телефонный справочник</h1>
         {{range .Items}}
-            <p>{{.Id}}, {{.Organization}}, {{.Phone}}</p>
+            <p>{{.Id}}, {{.Organization}}, {{.City}}, {{.Phone}}</p>
         {{end}}
         <form action="/" method="GET">
             <button type="submit">Вернуться в главное меню</button>

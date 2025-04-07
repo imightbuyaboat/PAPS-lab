@@ -179,6 +179,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		studiodb.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
+			City:         r.FormValue("city"),
 			Phone:        r.FormValue("phone"),
 		})
 	if err != nil {
