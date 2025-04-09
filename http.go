@@ -6,8 +6,8 @@ import (
 	"time"
 
 	passman "PAPS-LAB/passwordmanager"
+	"PAPS-LAB/register"
 	sessman "PAPS-LAB/sessionmanager"
-	"PAPS-LAB/studiodb"
 )
 
 func (h *Handler) loginPage(w http.ResponseWriter, r *http.Request) {
@@ -23,10 +23,14 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 
 	var errorMsg string
 
-	errorID, isPriv := h.pm.Check(&passman.User{
+	errorID, isPriv, err := h.pm.Check(&passman.User{
 		Login:    login,
 		Password: password,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	switch errorID {
 	case 1:
@@ -75,9 +79,22 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 
 	var errorMsg string
 
-	errorID := h.pm.CheckAvailableLogin(login)
+	if login == "" || password == "" {
+		errorMsg = "Некорректные данные"
+		err := h.tmpl.ExecuteTemplate(w, "register.html", map[string]string{"ErrorMsg": errorMsg})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
 
-	if errorID == 1 {
+	exists, err := h.pm.CheckAvailableLogin(login)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if exists {
 		errorMsg = "Пользователь с таким логином уже существует"
 		err := h.tmpl.ExecuteTemplate(w, "register.html", map[string]string{"ErrorMsg": errorMsg})
 		if err != nil {
@@ -86,7 +103,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.pm.Create(&passman.User{
+	err = h.pm.Insert(&passman.User{
 		Login:    login,
 		Password: password,
 	})
@@ -145,8 +162,8 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
-	err = h.db.Insert(
-		studiodb.Item{
+	err = h.reg.Insert(
+		register.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -177,7 +194,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.Delete(id)
+	err = h.reg.Delete(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -199,8 +216,8 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 		isPriv = session.Priveleged
 	}
 
-	items, err := h.db.SelectAny(
-		studiodb.Item{
+	items, err := h.reg.SelectAny(
+		register.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -212,7 +229,7 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []studiodb.Item
+		Items       []register.Item
 		ShowButtons bool
 	}{
 		Items:       items,
@@ -242,14 +259,14 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 		isPriv = session.Priveleged
 	}
 
-	items, err := h.db.SelectAll()
+	items, err := h.reg.SelectAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []studiodb.Item
+		Items       []register.Item
 		ShowButtons bool
 	}{
 		Items:       items,

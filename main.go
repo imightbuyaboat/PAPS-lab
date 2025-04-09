@@ -2,6 +2,7 @@ package main
 
 import (
 	passman "PAPS-LAB/passwordmanager"
+	"PAPS-LAB/register"
 	sessman "PAPS-LAB/sessionmanager"
 	"PAPS-LAB/studiodb"
 	"fmt"
@@ -16,7 +17,7 @@ import (
 type Handler struct {
 	sm   *sessman.SessionManager
 	pm   *passman.PasswordManager
-	db   *studiodb.DB
+	reg  *register.Register
 	tmpl *template.Template
 }
 
@@ -37,8 +38,8 @@ func main() {
 
 	handlers := &Handler{
 		sm:   sessman.NewSessionManager(),
-		pm:   passman.NewPasswordManager(),
-		db:   db,
+		pm:   passman.NewPasswordManager(db),
+		reg:  register.NewRegister(db),
 		tmpl: template.Must(template.ParseFiles(files...)),
 	}
 

@@ -1,7 +1,7 @@
 package passwordmanager
 
 import (
-	"sync"
+	"PAPS-LAB/studiodb"
 )
 
 type User struct {
@@ -10,11 +10,18 @@ type User struct {
 }
 
 type Info struct {
-	Hash       []byte
+	Hash       string
 	Priveleged bool
 }
 
 type PasswordManager struct {
-	mu    sync.RWMutex
-	users map[string]*Info
+	*studiodb.DB
 }
+
+/*
+CREATE TABLE users (
+    login TEXT PRIMARY KEY,
+    hash TEXT NOT NULL,
+    priveleged BOOLEAN NOT NULL DEFAULT FALSE
+);
+*/

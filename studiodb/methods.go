@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -43,80 +42,3 @@ func NewDB() (*DB, error) {
 
 	return &DB{db}, nil
 }
-
-func (db *DB) Insert(i Item) error {
-	query := "INSERT INTO register (organization, city, phone) VALUES ($1, $2, $3)"
-
-	_, err := db.Exec(query, i.Organization, i.City, i.Phone)
-	return err
-}
-
-func (db *DB) SelectAll() ([]Item, error) {
-	query := "SELECT * FROM register"
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	Items := []Item{}
-	for rows.Next() {
-		i := Item{}
-		err := rows.Scan(&i.Id, &i.Organization, &i.City, &i.Phone)
-		if err != nil {
-			return nil, err
-		}
-		Items = append(Items, i)
-	}
-	return Items, nil
-}
-
-func (db *DB) SelectAny(i Item) ([]Item, error) {
-	query := "SELECT * FROM register where 1=1"
-	var args []interface{}
-
-	if i.Organization != "" {
-		query += " and organization = $"
-		query += strconv.Itoa(len(args) + 1)
-		args = append(args, i.Organization)
-	}
-	if i.City != "" {
-		query += " and city = $"
-		query += strconv.Itoa(len(args) + 1)
-		args = append(args, i.City)
-	}
-	if i.Phone != "" {
-		query += " and phone = $"
-		query += strconv.Itoa(len(args) + 1)
-		args = append(args, i.Phone)
-	}
-
-	rows, err := db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	Items := []Item{}
-	for rows.Next() {
-		i := Item{}
-		err := rows.Scan(&i.Id, &i.Organization, &i.City, &i.Phone)
-		if err != nil {
-			return nil, err
-		}
-		Items = append(Items, i)
-	}
-	return Items, nil
-}
-
-func (db *DB) Delete(id int) error {
-	_, err := db.Exec("DELETE FROM register WHERE id = $1", id)
-	return err
-}
-
-/*CREATE TABLE register (
-    id SERIAL PRIMARY KEY,
-    organization VARCHAR(255) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    phone VARCHAR(50) NOT NULL
-);*/

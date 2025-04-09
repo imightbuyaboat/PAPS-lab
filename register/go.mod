@@ -1,4 +1,4 @@
-module passwordmanager
+module register
 
 go 1.23.1
 
