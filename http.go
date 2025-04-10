@@ -23,7 +23,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 
 	var errorMsg string
 
-	errorID, isPriv, err := h.pm.Check(&passman.User{
+	exists, isPriv, err := h.pm.Check(&passman.User{
 		Login:    login,
 		Password: password,
 	})
@@ -32,11 +32,8 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch errorID {
-	case 1:
-		errorMsg = "Неправильный пароль"
-	case 2:
-		errorMsg = "Такого пользователя не существует"
+	if !exists {
+		errorMsg = "Некорректные логин или пароль"
 	}
 
 	if errorMsg != "" {
@@ -80,7 +77,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	var errorMsg string
 
 	if login == "" || password == "" {
-		errorMsg = "Некорректные данные"
+		errorMsg = "Некорректные логин или пароль"
 		err := h.tmpl.ExecuteTemplate(w, "register.html", map[string]string{"ErrorMsg": errorMsg})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -3,6 +3,7 @@ package passwordmanager
 import (
 	"PAPS-LAB/studiodb"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 )
 
@@ -24,33 +25,26 @@ func (pm *PasswordManager) Insert(in *User) error {
 	return err
 }
 
-func (pm *PasswordManager) Check(in *User) (int, bool, error) {
+func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error) {
 	query := "SELECT hash, priveleged FROM users where login = $1"
-	rows, err := pm.Query(query, in.Login)
+	row := pm.QueryRow(query, in.Login)
+
+	var hashFromDB string
+	var isPrivileged bool
+
+	err = row.Scan(&hashFromDB, &isPrivileged)
+	if err == sql.ErrNoRows {
+		return false, false, nil
+	}
 	if err != nil {
-		return 0, false, err
-	}
-	defer rows.Close()
-
-	users := []Info{}
-	for rows.Next() {
-		i := Info{}
-		err := rows.Scan(&i.Hash, &i.Priveleged)
-		if err != nil {
-			return 0, false, err
-		}
-		users = append(users, i)
-	}
-
-	if len(users) == 0 {
-		return 2, false, err
+		return false, false, err
 	}
 
 	hash := CreateHash(in.Password)
-	if users[0].Hash == hash {
-		return 0, users[0].Priveleged, err
+	if hashFromDB == hash {
+		return true, isPrivileged, nil
 	}
-	return 1, false, err
+	return false, false, nil
 }
 
 func (pm *PasswordManager) CheckAvailableLogin(login string) (bool, error) {

@@ -37,6 +37,26 @@
             display: inline-block;
             margin-right: 10px;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .invalid {
+            border: 2px solid red;
+        }
     </style>
 </head>
 <body>
@@ -63,26 +83,45 @@
     </div>
     {{end}}
 
-    {{range .Items}}
-        <p>{{.Id}}, {{.Organization}}, {{.City}}, {{.Phone}}</p>
-    {{end}}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Организация</th>
+                <th>Город</th>
+                <th>Телефон</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td>{{.Id}}</td>
+                <td>{{.Organization}}</td>
+                <td>{{.City}}</td>
+                <td>{{.Phone}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
 
+    <!-- Модальное окно для добавления записи -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <span class="close" id="addClose">&times;</span>
             <h3>Новая запись</h3>
-            <form action="/add" method="POST">
+            <form action="/add" method="POST" id="addForm">
                 <label>Организация:</label><br>
-                <input type="text" name="organization" required><br>
+                <input type="text" name="organization" id="orgInput" required><br>
                 <label>Город:</label><br>
-                <input type="text" name="city" required><br>
-                <label>Телефон:</label><br>
-                <input type="text" name="phone" required><br><br>
-                <button type="submit">Сохранить</button>
+                <input type="text" name="city" id="cityInput" required><br>
+                <label>Телефон (+7-xxx-xxx-xx-xx):</label><br>
+                <input type="text" name="phone" id="phoneInput" required><br><br>
+                <button type="submit" id="saveBtn" disabled>Сохранить</button>
             </form>
         </div>
     </div>
 
+    <!-- Модальное окно для удаления записи -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <span class="close" id="deleteClose">&times;</span>
@@ -95,6 +134,7 @@
         </div>
     </div>
 
+    <!-- Модальное окно для поиска -->
     <div id="searchModal" class="modal">
         <div class="modal-content">
             <span class="close" id="searchClose">&times;</span>
@@ -116,42 +156,67 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            //добавление
-            const addModal = document.getElementById("addModal");
-            const addBtn = document.getElementById("addBtn");
-            const addClose = document.getElementById("addClose");
-
-            if (addBtn && addClose) {
-                addBtn.onclick = () => addModal.style.display = "block";
-                addClose.onclick = () => addModal.style.display = "none";
-            }
-
-            //удаление
-            const deleteModal = document.getElementById("deleteModal");
-            const deleteBtn = document.getElementById("deleteBtn");
-            const deleteClose = document.getElementById("deleteClose");
-
-            if (deleteBtn && deleteClose) {
-                deleteBtn.onclick = () => deleteModal.style.display = "block";
-                deleteClose.onclick = () => deleteModal.style.display = "none";
-            }
-
-            //поиск
-            const searchModal = document.getElementById("searchModal");
-            const searchBtn = document.getElementById("searchBtn");
-            const searchClose = document.getElementById("searchClose");
-
-            if (searchBtn && searchClose) {
-                searchBtn.onclick = () => searchModal.style.display = "block";
-                searchClose.onclick = () => searchModal.style.display = "none";
-            }
-
-            //закрытие по клику вне окна
-            window.onclick = function(event) {
-                if (event.target == addModal) addModal.style.display = "none";
-                if (event.target == deleteModal) deleteModal.style.display = "none";
-                if (event.target == searchModal) searchModal.style.display = "none";
+            // Модальные окна
+            const modals = {
+                add: document.getElementById("addModal"),
+                delete: document.getElementById("deleteModal"),
+                search: document.getElementById("searchModal")
             };
+
+            const buttons = {
+                add: document.getElementById("addBtn"),
+                delete: document.getElementById("deleteBtn"),
+                search: document.getElementById("searchBtn")
+            };
+
+            const closes = {
+                add: document.getElementById("addClose"),
+                delete: document.getElementById("deleteClose"),
+                search: document.getElementById("searchClose")
+            };
+
+            if (buttons.add && closes.add) {
+                buttons.add.onclick = () => modals.add.style.display = "block";
+                closes.add.onclick = () => modals.add.style.display = "none";
+            }
+
+            if (buttons.delete && closes.delete) {
+                buttons.delete.onclick = () => modals.delete.style.display = "block";
+                closes.delete.onclick = () => modals.delete.style.display = "none";
+            }
+
+            if (buttons.search && closes.search) {
+                buttons.search.onclick = () => modals.search.style.display = "block";
+                closes.search.onclick = () => modals.search.style.display = "none";
+            }
+
+            window.onclick = function(event) {
+                for (let key in modals) {
+                    if (event.target === modals[key]) {
+                        modals[key].style.display = "none";
+                    }
+                }
+            };
+
+            // Валидация формы добавления
+            const orgInput = document.getElementById("orgInput");
+            const cityInput = document.getElementById("cityInput");
+            const phoneInput = document.getElementById("phoneInput");
+            const saveBtn = document.getElementById("saveBtn");
+
+            function validateForm() {
+                const phoneRegex = /^\+7-\d{3}-\d{3}-\d{2}-\d{2}$/;
+                const isValidPhone = phoneRegex.test(phoneInput.value);
+
+                phoneInput.classList.toggle('invalid', !isValidPhone);
+
+                const isFilled = orgInput.value.trim() !== "" && cityInput.value.trim() !== "";
+                saveBtn.disabled = !(isFilled && isValidPhone);
+            }
+
+            [orgInput, cityInput, phoneInput].forEach(input => {
+                input.addEventListener("input", validateForm);
+            });
         });
     </script>
 
