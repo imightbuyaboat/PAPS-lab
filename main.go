@@ -37,11 +37,16 @@ func main() {
 	}
 
 	handlers := &Handler{
-		sm:   sessman.NewSessionManager(),
 		pm:   passman.NewPasswordManager(db),
 		reg:  register.NewRegister(db),
 		tmpl: template.Must(template.ParseFiles(files...)),
 	}
+
+	newSM, err := sessman.NewSessionManager()
+	if err != nil {
+		log.Fatalf("Ошибка при подключении к redis: %v", err)
+	}
+	handlers.sm = newSM
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", handlers.mainPage).Methods("GET")

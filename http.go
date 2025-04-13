@@ -142,7 +142,11 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.sm.Delete(sessionID)
+	err = h.sm.Delete(sessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	session.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, session)
@@ -291,6 +295,5 @@ func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 		return nil, err
 	}
 
-	session := h.sm.Check(sessionID)
-	return session, nil
+	return h.sm.Check(sessionID)
 }

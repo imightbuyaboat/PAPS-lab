@@ -1,9 +1,10 @@
 package sessionmanager
 
 import (
-	"sync"
+	"context"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type Session struct {
@@ -15,6 +16,7 @@ type Session struct {
 type SessionID uuid.UUID
 
 type SessionManager struct {
-	mu       sync.RWMutex
-	sessions map[SessionID]*Session
+	*redis.Client
 }
+
+var ctx = context.Background()
