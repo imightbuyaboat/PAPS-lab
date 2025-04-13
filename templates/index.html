@@ -1,224 +1,310 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Телефонный справочник</title>
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
+  <meta charset="UTF-8">
+  <title>Телефонный справочник</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fdf6f0;
+      margin: 0;
+      padding: 20px;
+      color: #444;
+    }
 
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 300px;
-        }
+    h1 {
+      text-align: center;
+      color: #7a6c5d;
+    }
 
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 24px;
-            cursor: pointer;
-        }
+    .actions {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        .actions {
-            margin-bottom: 20px;
-        }
+    .actions button,
+    .actions input[type="submit"] {
+      background-color: #e3d5ca;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+      transition: background-color 0.3s ease;
+    }
 
-        .actions button,
-        .actions form {
-            display: inline-block;
-            margin-right: 10px;
-        }
+    .actions button:hover,
+    .actions input[type="submit"]:hover {
+      background-color: #d6ccc2;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
+    th {
+      background-color: #e7dcd7;
+      padding: 12px;
+      color: #5a5146;
+      text-align: left;
+    }
 
-        th {
-            background-color: #f2f2f2;
-        }
+    td {
+      padding: 10px 12px;
+      border-top: 1px solid #f0e6e1;
+    }
 
-        .invalid {
-            border: 2px solid red;
-        }
-    </style>
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.3);
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px 30px;
+      border-radius: 16px;
+      width: 320px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .close {
+      float: right;
+      font-size: 24px;
+      cursor: pointer;
+      color: #aaa;
+    }
+
+    .close:hover {
+      color: #555;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      color: #5e5247;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f5f2;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      border-color: #c7b9af;
+      outline: none;
+    }
+
+    button[type="submit"] {
+      margin-top: 15px;
+      background-color: #cdb4b1;
+      color: #333;
+      border: none;
+      padding: 10px;
+      border-radius: 20px;
+      width: 100%;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #d1a29f;
+    }
+
+    .invalid {
+      border-color: red !important;
+    }
+
+    /* Новый стиль для кнопки "Очистить" */
+    input[type="submit"] {
+      background-color: #f1e1d0;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #e0c8b3;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Телефонный справочник</h1>
+<h1>Телефонный справочник</h1>
 
-    {{if .ShowButtons}}
-    <div class="actions">
-        <button id="addBtn">Добавить запись</button>
-        <button id="deleteBtn">Удалить запись</button>
-        <button id="searchBtn">Поиск</button>
+{{if .ShowButtons}}
+<div class="actions">
+  <button id="addBtn">Добавить запись</button>
+  <button id="deleteBtn">Удалить запись</button>
+  <button id="searchBtn">Поиск</button>
+  <form action="/logout" method="POST" style="display: inline;">
+    <input type="submit" value="Выйти">
+  </form>
+</div>
+{{else}}
+<div class="actions">
+  <button id="searchBtn">Поиск</button>
+  <form action="/logout" method="POST" style="display: inline;">
+    <input type="submit" value="Выйти">
+  </form>
+</div>
+{{end}}
 
-        <form action="/logout" method="POST" style="display: inline;">
-            <input type="submit" value="Выйти">
-        </form>
-    </div>
-    {{else}}
-    <div class="actions">
-        <button id="searchBtn">Поиск</button>
-
-        <form action="/logout" method="POST" style="display: inline;">
-            <input type="submit" value="Выйти">
-        </form>
-    </div>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Организация</th>
+      <th>Город</th>
+      <th>Телефон</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Items}}
+    <tr>
+      <td>{{.Id}}</td>
+      <td>{{.Organization}}</td>
+      <td>{{.City}}</td>
+      <td>{{.Phone}}</td>
+    </tr>
     {{end}}
+  </tbody>
+</table>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Организация</th>
-                <th>Город</th>
-                <th>Телефон</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Items}}
-            <tr>
-                <td>{{.Id}}</td>
-                <td>{{.Organization}}</td>
-                <td>{{.City}}</td>
-                <td>{{.Phone}}</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+<!-- Модальные окна -->
+<div id="addModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="addClose">&times;</span>
+    <h3>Новая запись</h3>
+    <form action="/add" method="POST" id="addForm">
+      <label>Организация:</label>
+      <input type="text" name="organization" id="orgInput" required>
+      <label>Город:</label>
+      <input type="text" name="city" id="cityInput" required>
+      <label>Телефон (+7-xxx-xxx-xx-xx):</label>
+      <input type="text" name="phone" id="phoneInput" required>
+      <button type="submit" id="saveBtn" disabled>Сохранить</button>
+    </form>
+  </div>
+</div>
 
-    <!-- Модальное окно для добавления записи -->
-    <div id="addModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="addClose">&times;</span>
-            <h3>Новая запись</h3>
-            <form action="/add" method="POST" id="addForm">
-                <label>Организация:</label><br>
-                <input type="text" name="organization" id="orgInput" required><br>
-                <label>Город:</label><br>
-                <input type="text" name="city" id="cityInput" required><br>
-                <label>Телефон (+7-xxx-xxx-xx-xx):</label><br>
-                <input type="text" name="phone" id="phoneInput" required><br><br>
-                <button type="submit" id="saveBtn" disabled>Сохранить</button>
-            </form>
-        </div>
-    </div>
+<div id="deleteModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="deleteClose">&times;</span>
+    <h3>Удалить запись</h3>
+    <form action="/delete" method="POST">
+      <label>ID записи:</label>
+      <input type="number" name="id" required>
+      <button type="submit">Удалить</button>
+    </form>
+  </div>
+</div>
 
-    <!-- Модальное окно для удаления записи -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="deleteClose">&times;</span>
-            <h3>Удалить запись</h3>
-            <form action="/delete" method="POST">
-                <label>ID записи:</label><br>
-                <input type="number" name="id" required><br><br>
-                <button type="submit">Удалить</button>
-            </form>
-        </div>
-    </div>
+<div id="searchModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="searchClose">&times;</span>
+    <h3>Поиск записи</h3>
+    <form id="searchForm" action="/search" method="POST">
+      <label>Организация:</label>
+      <input type="text" name="organization">
+      <label>Город:</label>
+      <input type="text" name="city">
+      <label>Телефон:</label>
+      <input type="text" name="phone">
+      <button type="submit">Поиск</button>
+    </form>
+    <form action="/return" method="POST" style="margin-top: 10px;">
+      <input type="submit" value="Очистить">
+    </form>
+  </div>
+</div>
 
-    <!-- Модальное окно для поиска -->
-    <div id="searchModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="searchClose">&times;</span>
-            <h3>Поиск записи</h3>
-            <form id="searchForm" action="/search" method="POST">
-                <label>Организация:</label><br>
-                <input type="text" name="organization"><br>
-                <label>Город:</label><br>
-                <input type="text" name="city"><br>
-                <label>Телефон:</label><br>
-                <input type="text" name="phone"><br><br>
-                <button type="submit">Поиск</button>
-            </form>
-            <form action="/return" method="POST" style="display: inline;">
-                <input type="submit" value="Очистить">
-            </form>
-        </div>
-    </div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const modals = {
+      add: document.getElementById("addModal"),
+      delete: document.getElementById("deleteModal"),
+      search: document.getElementById("searchModal")
+    };
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Модальные окна
-            const modals = {
-                add: document.getElementById("addModal"),
-                delete: document.getElementById("deleteModal"),
-                search: document.getElementById("searchModal")
-            };
+    const buttons = {
+      add: document.getElementById("addBtn"),
+      delete: document.getElementById("deleteBtn"),
+      search: document.getElementById("searchBtn")
+    };
 
-            const buttons = {
-                add: document.getElementById("addBtn"),
-                delete: document.getElementById("deleteBtn"),
-                search: document.getElementById("searchBtn")
-            };
+    const closes = {
+      add: document.getElementById("addClose"),
+      delete: document.getElementById("deleteClose"),
+      search: document.getElementById("searchClose")
+    };
 
-            const closes = {
-                add: document.getElementById("addClose"),
-                delete: document.getElementById("deleteClose"),
-                search: document.getElementById("searchClose")
-            };
+    if (buttons.add && closes.add) {
+      buttons.add.onclick = () => modals.add.style.display = "block";
+      closes.add.onclick = () => modals.add.style.display = "none";
+    }
 
-            if (buttons.add && closes.add) {
-                buttons.add.onclick = () => modals.add.style.display = "block";
-                closes.add.onclick = () => modals.add.style.display = "none";
-            }
+    if (buttons.delete && closes.delete) {
+      buttons.delete.onclick = () => modals.delete.style.display = "block";
+      closes.delete.onclick = () => modals.delete.style.display = "none";
+    }
 
-            if (buttons.delete && closes.delete) {
-                buttons.delete.onclick = () => modals.delete.style.display = "block";
-                closes.delete.onclick = () => modals.delete.style.display = "none";
-            }
+    if (buttons.search && closes.search) {
+      buttons.search.onclick = () => modals.search.style.display = "block";
+      closes.search.onclick = () => modals.search.style.display = "none";
+    }
 
-            if (buttons.search && closes.search) {
-                buttons.search.onclick = () => modals.search.style.display = "block";
-                closes.search.onclick = () => modals.search.style.display = "none";
-            }
+    window.onclick = function(event) {
+      for (let key in modals) {
+        if (event.target === modals[key]) {
+          modals[key].style.display = "none";
+        }
+      }
+    };
 
-            window.onclick = function(event) {
-                for (let key in modals) {
-                    if (event.target === modals[key]) {
-                        modals[key].style.display = "none";
-                    }
-                }
-            };
+    const orgInput = document.getElementById("orgInput");
+    const cityInput = document.getElementById("cityInput");
+    const phoneInput = document.getElementById("phoneInput");
+    const saveBtn = document.getElementById("saveBtn");
 
-            // Валидация формы добавления
-            const orgInput = document.getElementById("orgInput");
-            const cityInput = document.getElementById("cityInput");
-            const phoneInput = document.getElementById("phoneInput");
-            const saveBtn = document.getElementById("saveBtn");
+    function validateForm() {
+      const phoneRegex = /^\+7-\d{3}-\d{3}-\d{2}-\d{2}$/;
+      const isValidPhone = phoneRegex.test(phoneInput.value);
+      phoneInput.classList.toggle('invalid', !isValidPhone);
+      const isFilled = orgInput.value.trim() !== "" && cityInput.value.trim() !== "";
+      saveBtn.disabled = !(isFilled && isValidPhone);
+    }
 
-            function validateForm() {
-                const phoneRegex = /^\+7-\d{3}-\d{3}-\d{2}-\d{2}$/;
-                const isValidPhone = phoneRegex.test(phoneInput.value);
-
-                phoneInput.classList.toggle('invalid', !isValidPhone);
-
-                const isFilled = orgInput.value.trim() !== "" && cityInput.value.trim() !== "";
-                saveBtn.disabled = !(isFilled && isValidPhone);
-            }
-
-            [orgInput, cityInput, phoneInput].forEach(input => {
-                input.addEventListener("input", validateForm);
-            });
-        });
-    </script>
+    [orgInput, cityInput, phoneInput].forEach(input => {
+      input.addEventListener("input", validateForm);
+    });
+  });
+</script>
 
 </body>
 </html>
