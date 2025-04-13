@@ -56,7 +56,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 
 	cookie := http.Cookie{
 		Name:    "session_id",
-		Value:   sessionID.ID,
+		Value:   sessionID.String(),
 		Expires: time.Now().Add(24 * time.Hour),
 	}
 	http.SetCookie(w, &cookie)
@@ -121,7 +121,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 
 	cookie := http.Cookie{
 		Name:    "session_id",
-		Value:   sessionID.ID,
+		Value:   sessionID.String(),
 		Expires: time.Now().Add(24 * time.Hour),
 	}
 	http.SetCookie(w, &cookie)
@@ -137,9 +137,12 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.sm.Delete(&sessman.SessionID{
-		ID: session.Value,
-	})
+	sessionID, err := sessman.ParseSessionID(session.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.sm.Delete(sessionID)
 
 	session.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, session)
@@ -283,6 +286,11 @@ func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 		return nil, err
 	}
 
-	session := h.sm.Check(&sessman.SessionID{ID: cookieSessionID.Value})
+	sessionID, err := sessman.ParseSessionID(cookieSessionID.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	session := h.sm.Check(sessionID)
 	return session, nil
 }

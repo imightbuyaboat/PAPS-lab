@@ -1,16 +1,23 @@
 package sessionmanager
 
 import (
-	"math/rand"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
+func NewSessionID() (SessionID, error) {
+	id, err := uuid.NewRandom()
+	return SessionID(id), err
+}
+
+func ParseSessionID(s string) (SessionID, error) {
+	id, err := uuid.Parse(s)
+	return SessionID(id), err
+}
+
+func (sid SessionID) String() string {
+	return uuid.UUID(sid).String()
 }
 
 func NewSessionManager() *SessionManager {
@@ -20,25 +27,26 @@ func NewSessionManager() *SessionManager {
 	}
 }
 
-func (sm *SessionManager) Create(in *Session) (*SessionID, error) {
-	id := SessionID{RandStringRunes(sessionKeyLen)}
+func (sm *SessionManager) Create(s *Session) (*SessionID, error) {
+	id, err := NewSessionID()
+	if err != nil {
+		return nil, err
+	}
+
 	sm.mu.Lock()
-	sm.sessions[id] = in
+	sm.sessions[id] = s
 	sm.mu.Unlock()
 	return &id, nil
 }
 
-func (sm *SessionManager) Check(in *SessionID) *Session {
+func (sm *SessionManager) Check(id SessionID) *Session {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	if session, ok := sm.sessions[*in]; ok {
-		return session
-	}
-	return nil
+	return sm.sessions[id]
 }
 
-func (sm *SessionManager) Delete(in *SessionID) {
+func (sm *SessionManager) Delete(id SessionID) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	delete(sm.sessions, *in)
+	delete(sm.sessions, id)
 }
