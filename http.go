@@ -21,8 +21,6 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	login := r.FormValue("login")
 	password := r.FormValue("password")
 
-	var errorMsg string
-
 	exists, isPriv, err := h.pm.Check(&passman.User{
 		Login:    login,
 		Password: password,
@@ -33,10 +31,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !exists {
-		errorMsg = "Некорректные логин или пароль"
-	}
-
-	if errorMsg != "" {
+		errorMsg := "Некорректные логин или пароль"
 		err := h.tmpl.ExecuteTemplate(w, "login.html", map[string]string{"ErrorMsg": errorMsg})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,7 +80,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := h.pm.CheckAvailableLogin(login)
+	exists, err := h.pm.IsLoginAvailable(login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -131,7 +126,8 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err == http.ErrNoCookie {
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -151,22 +147,11 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	session.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, session)
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
 func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if session == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	} else if !session.Priveleged {
-		http.Redirect(w, r, "/", http.StatusFound)
-	}
-
-	err = h.reg.Insert(
+	err := h.reg.Insert(
 		register.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
@@ -181,17 +166,6 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if session == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	} else if !session.Priveleged {
-		http.Redirect(w, r, "/", http.StatusFound)
-	}
-
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -216,6 +190,7 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 	if session == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	} else {
 		isPriv = session.Priveleged
 	}
@@ -259,6 +234,7 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if session == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	} else {
 		isPriv = session.Priveleged
 	}
@@ -296,4 +272,23 @@ func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 	}
 
 	return h.sm.Check(sessionID)
+}
+
+func (h *Handler) CheckAuthMiddleWare(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := h.checkSession(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if session == nil {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		} else if !session.Priveleged {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

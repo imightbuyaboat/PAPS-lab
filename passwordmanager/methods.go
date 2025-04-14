@@ -47,7 +47,7 @@ func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error)
 	return false, false, nil
 }
 
-func (pm *PasswordManager) CheckAvailableLogin(login string) (bool, error) {
+func (pm *PasswordManager) IsLoginAvailable(login string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE login=$1)`
 	err := pm.QueryRow(query, login).Scan(&exists)
