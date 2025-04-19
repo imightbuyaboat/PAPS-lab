@@ -1,8 +1,10 @@
 package sessionmanager
 
 import (
+	"context"
 	"fmt"
 	"os"
+	bt "papslab/basic_types"
 	"strconv"
 	"time"
 
@@ -11,22 +13,25 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func NewSessionID() (SessionID, error) {
+type SessionManager struct {
+	Client *redis.Client
+	ctx    context.Context
+}
+
+func NewSessionID() (bt.SessionID, error) {
 	id, err := uuid.NewRandom()
-	return SessionID(id), err
+	return bt.SessionID(id), err
 }
 
-func ParseSessionID(s string) (SessionID, error) {
+func ParseSessionID(s string) (bt.SessionID, error) {
 	id, err := uuid.Parse(s)
-	return SessionID(id), err
-}
-
-func (sid SessionID) String() string {
-	return uuid.UUID(sid).String()
+	return bt.SessionID(id), err
 }
 
 func NewSessionManager() (*SessionManager, error) {
-	err := godotenv.Load() // Загружаем .env
+	sm := &SessionManager{}
+
+	err := godotenv.Load()
 	if err != nil {
 		return nil, err
 	}
@@ -41,30 +46,33 @@ func NewSessionManager() (*SessionManager, error) {
 		DB:       0,
 	})
 
-	if err := client.Ping(ctx).Err(); err != nil {
+	sm.Client = client
+	sm.ctx = context.Background()
+
+	if err := sm.Client.Ping(sm.ctx).Err(); err != nil {
 		return nil, err
 	}
-	return &SessionManager{client}, nil
+	return sm, nil
 }
 
-func (sm *SessionManager) Create(s *Session) (*SessionID, error) {
+func (sm *SessionManager) Create(s *bt.Session) (*bt.SessionID, error) {
 	id, err := NewSessionID()
 	if err != nil {
 		return nil, err
 	}
 
-	sm.HSet(ctx, "session:"+id.String(), map[string]interface{}{
+	sm.Client.HSet(sm.ctx, "session:"+id.String(), map[string]interface{}{
 		"login":      s.Login,
 		"useragent":  s.Useragent,
 		"priveleged": strconv.FormatBool(s.Priveleged),
 	})
-	sm.Expire(ctx, "session:"+id.String(), 24*time.Hour)
+	sm.Client.Expire(sm.ctx, "session:"+id.String(), 24*time.Hour)
 
 	return &id, nil
 }
 
-func (sm *SessionManager) Check(id SessionID) (*Session, error) {
-	data, err := sm.HGetAll(ctx, "session:"+id.String()).Result()
+func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
+	data, err := sm.Client.HGetAll(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +85,7 @@ func (sm *SessionManager) Check(id SessionID) (*Session, error) {
 		return nil, fmt.Errorf("не удалось прочитать priveleged: %v", err)
 	}
 
-	session := &Session{
+	session := &bt.Session{
 		Login:      data["login"],
 		Useragent:  data["useragent"],
 		Priveleged: priveleged,
@@ -85,8 +93,8 @@ func (sm *SessionManager) Check(id SessionID) (*Session, error) {
 	return session, nil
 }
 
-func (sm *SessionManager) Delete(id SessionID) error {
-	deleted, err := sm.Del(ctx, "session:"+id.String()).Result()
+func (sm *SessionManager) Delete(id bt.SessionID) error {
+	deleted, err := sm.Client.Del(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return err
 	}

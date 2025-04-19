@@ -11,6 +11,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type DB struct {
+	*sql.DB
+}
+
 func NewDB() (*DB, error) {
 	err := godotenv.Load() // Загружаем .env
 	if err != nil {

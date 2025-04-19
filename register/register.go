@@ -1,15 +1,20 @@
 package register
 
 import (
-	"PAPS-LAB/studiodb"
+	bt "papslab/basic_types"
+	"papslab/studiodb"
 	"strconv"
 )
+
+type Register struct {
+	*studiodb.DB
+}
 
 func NewRegister(db *studiodb.DB) *Register {
 	return &Register{db}
 }
 
-func (r *Register) Insert(i Item) error {
+func (r *Register) Insert(i bt.Item) error {
 	var maxVirtualID int
 	err := r.QueryRow("SELECT COALESCE(MAX(virtual_id), -1) FROM register").Scan(&maxVirtualID)
 	if err != nil {
@@ -22,7 +27,7 @@ func (r *Register) Insert(i Item) error {
 	return err
 }
 
-func (r *Register) SelectAll() ([]Item, error) {
+func (r *Register) SelectAll() ([]bt.Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register ORDER BY virtual_id"
 	rows, err := r.Query(query)
 	if err != nil {
@@ -30,9 +35,9 @@ func (r *Register) SelectAll() ([]Item, error) {
 	}
 	defer rows.Close()
 
-	Items := []Item{}
+	Items := []bt.Item{}
 	for rows.Next() {
-		i := Item{}
+		i := bt.Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err
@@ -42,7 +47,7 @@ func (r *Register) SelectAll() ([]Item, error) {
 	return Items, nil
 }
 
-func (r *Register) SelectAny(i Item) ([]Item, error) {
+func (r *Register) SelectAny(i bt.Item) ([]bt.Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register where 1=1"
 	var args []interface{}
 
@@ -66,9 +71,9 @@ func (r *Register) SelectAny(i Item) ([]Item, error) {
 	}
 	defer rows.Close()
 
-	Items := []Item{}
+	Items := []bt.Item{}
 	for rows.Next() {
-		i := Item{}
+		i := bt.Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err
@@ -110,3 +115,15 @@ func (r *Register) Delete(virtualID int) error {
 	}
 	return nil
 }
+
+/*
+CREATE TABLE register (
+    id SERIAL PRIMARY KEY,
+    organization VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+	CONSTRAINT phone_format CHECK (
+        phone ~ '^\+7-\d{3}-\d{3}-\d{2}-\d{2}$'
+    )
+);
+*/

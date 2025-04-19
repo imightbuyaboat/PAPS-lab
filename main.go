@@ -1,14 +1,14 @@
 package main
 
 import (
-	passman "PAPS-LAB/passwordmanager"
-	"PAPS-LAB/register"
-	sessman "PAPS-LAB/sessionmanager"
-	"PAPS-LAB/studiodb"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	passman "papslab/passwordmanager"
+	"papslab/register"
+	sessman "papslab/sessionmanager"
+	"papslab/studiodb"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
