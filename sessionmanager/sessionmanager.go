@@ -14,7 +14,7 @@ import (
 )
 
 type SessionManager struct {
-	Client *redis.Client
+	client *redis.Client
 	ctx    context.Context
 }
 
@@ -46,10 +46,10 @@ func NewSessionManager() (*SessionManager, error) {
 		DB:       0,
 	})
 
-	sm.Client = client
+	sm.client = client
 	sm.ctx = context.Background()
 
-	if err := sm.Client.Ping(sm.ctx).Err(); err != nil {
+	if err := sm.client.Ping(sm.ctx).Err(); err != nil {
 		return nil, err
 	}
 	return sm, nil
@@ -61,18 +61,18 @@ func (sm *SessionManager) Create(s *bt.Session) (*bt.SessionID, error) {
 		return nil, err
 	}
 
-	sm.Client.HSet(sm.ctx, "session:"+id.String(), map[string]interface{}{
+	sm.client.HSet(sm.ctx, "session:"+id.String(), map[string]interface{}{
 		"login":      s.Login,
 		"useragent":  s.Useragent,
 		"priveleged": strconv.FormatBool(s.Priveleged),
 	})
-	sm.Client.Expire(sm.ctx, "session:"+id.String(), 24*time.Hour)
+	sm.client.Expire(sm.ctx, "session:"+id.String(), 24*time.Hour)
 
 	return &id, nil
 }
 
 func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
-	data, err := sm.Client.HGetAll(sm.ctx, "session:"+id.String()).Result()
+	data, err := sm.client.HGetAll(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
 }
 
 func (sm *SessionManager) Delete(id bt.SessionID) error {
-	deleted, err := sm.Client.Del(sm.ctx, "session:"+id.String()).Result()
+	deleted, err := sm.client.Del(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return err
 	}

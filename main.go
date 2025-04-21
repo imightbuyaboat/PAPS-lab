@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -22,7 +21,8 @@ type Handler struct {
 }
 
 const (
-	templateDir string = "templates"
+	templateDir = "templates"
+	staticDir   = "static"
 )
 
 func main() {
@@ -50,20 +50,23 @@ func main() {
 
 	r := mux.NewRouter()
 
-	privilegedRouter := r.NewRoute().Subrouter()
-	privilegedRouter.Use(handlers.CheckAuthMiddleWare)
-	privilegedRouter.HandleFunc("/add", handlers.add).Methods("POST")
-	privilegedRouter.HandleFunc("/delete", handlers.delete).Methods("POST")
+	fs := http.FileServer(http.Dir(staticDir))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
+
+	checkSessionRouter := r.NewRoute().Subrouter()
+	checkSessionRouter.Use(handlers.CheckSessionMiddleWare)
+	checkSessionRouter.HandleFunc("/login", handlers.loginPage).Methods("GET")
+	checkSessionRouter.HandleFunc("/register", handlers.registerPage).Methods("GET")
 
 	r.HandleFunc("/", handlers.mainPage).Methods("GET")
-	r.HandleFunc("/login", handlers.loginPage).Methods("GET")
 	r.HandleFunc("/login", handlers.login).Methods("POST")
-	r.HandleFunc("/register", handlers.registerPage).Methods("GET")
 	r.HandleFunc("/register", handlers.register).Methods("POST")
 	r.HandleFunc("/logout", handlers.logout).Methods("POST")
 	r.HandleFunc("/search", handlers.search).Methods("POST")
+	r.HandleFunc("/add", handlers.add).Methods("POST")
+	r.HandleFunc("/delete", handlers.delete).Methods("POST")
 	r.HandleFunc("/return", handlers.returnToMainPage).Methods("POST")
 
-	fmt.Println("starting server at :8080")
+	log.Println("starting server at :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

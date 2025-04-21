@@ -16,7 +16,7 @@ type DB struct {
 }
 
 func NewDB() (*DB, error) {
-	err := godotenv.Load() // Загружаем .env
+	err := godotenv.Load()
 	if err != nil {
 		return nil, err
 	}

@@ -150,7 +150,20 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
-	err := h.reg.Insert(
+	session, err := h.checkSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	} else if !session.Priveleged {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	err = h.reg.Insert(
 		bt.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
@@ -165,6 +178,19 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	session, err := h.checkSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	} else if !session.Priveleged {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -273,17 +299,14 @@ func (h *Handler) checkSession(r *http.Request) (*bt.Session, error) {
 	return h.sm.Check(sessionID)
 }
 
-func (h *Handler) CheckAuthMiddleWare(next http.Handler) http.Handler {
+func (h *Handler) CheckSessionMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := h.checkSession(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if session == nil {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		} else if !session.Priveleged {
+		if session != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
