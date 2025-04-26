@@ -58,11 +58,3 @@ func (pm *PasswordManager) IsLoginAvailable(login string) (bool, error) {
 	err := pm.QueryRow(query, login).Scan(&exists)
 	return exists, err
 }
-
-/*
-CREATE TABLE users (
-    login TEXT PRIMARY KEY,
-    hash TEXT NOT NULL,
-    priveleged BOOLEAN NOT NULL DEFAULT FALSE
-);
-*/
