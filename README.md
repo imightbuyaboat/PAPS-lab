@@ -25,6 +25,12 @@
    
 2. В корне проекта создайте `.env` файл
 
+   ```bash
+   nano .env
+   ```
+
+   со следующим содержимым:
+
    ```env
    SQL_HOST=localhost
    SQL_PORT=5432
@@ -36,18 +42,22 @@
    REDIS_PORT=6379
    REDIS_PASSWORD=your_password
    ```
-3. Запустите контейнеры через Docker
+   
+4. Запустите контейнеры через Docker
    ```bash
-   docker-compose up --build
+   docker-compose up --build -d
    ```
 
-4. Установите зависимости
+5. Установите зависимости
    ```bash
    go mod download
    ```
 
-5. Запустите веб-сервер
+6. Запустите веб-сервер
    ```bash
    go run .
    ```
+
+   После успешного запуска в консоль будет выведено сообщение `Starting server at :8080`.
+   
 После запуска откройте `localhost:8080`
