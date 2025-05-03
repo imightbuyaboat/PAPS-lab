@@ -9,8 +9,11 @@ import (
 	sessman "papslab/sessionmanager"
 	"papslab/studiodb"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Handler struct {
@@ -24,6 +27,30 @@ const (
 	templateDir = "templates"
 	staticDir   = "static"
 )
+
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "path"},
+	)
+
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "path"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+}
 
 func main() {
 	files, err := filepath.Glob(filepath.Join(templateDir, "*.html"))
@@ -50,6 +77,10 @@ func main() {
 
 	r := mux.NewRouter()
 
+	r.Use(prometheusMiddleware)
+
+	r.Handle("/metrics", promhttp.Handler())
+
 	fs := http.FileServer(http.Dir(staticDir))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
 
@@ -68,5 +99,19 @@ func main() {
 	r.HandleFunc("/return", handlers.returnToMainPage).Methods("POST")
 
 	log.Println("starting server at :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", r))
+}
+
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		path := r.URL.Path
+		method := r.Method
+
+		next.ServeHTTP(w, r)
+
+		duration := time.Since(start).Seconds()
+		httpRequestsTotal.WithLabelValues(method, path).Inc()
+		httpRequestDuration.WithLabelValues(method, path).Observe(duration)
+	})
 }
