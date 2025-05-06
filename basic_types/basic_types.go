@@ -9,11 +9,6 @@ type User struct {
 	Password string
 }
 
-type UserInfo struct {
-	Hash       string
-	Priveleged bool
-}
-
 type Item struct {
 	Id           int
 	Organization string
