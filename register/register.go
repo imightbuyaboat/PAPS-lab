@@ -1,7 +1,6 @@
 package register
 
 import (
-	bt "papslab/basic_types"
 	"papslab/studiodb"
 	"strconv"
 )
@@ -14,7 +13,7 @@ func NewRegister(db *studiodb.DB) *Register {
 	return &Register{db}
 }
 
-func (r *Register) Insert(i bt.Item) error {
+func (r *Register) Insert(i Item) error {
 	var maxVirtualID int
 	err := r.QueryRow("SELECT COALESCE(MAX(virtual_id), -1) FROM register").Scan(&maxVirtualID)
 	if err != nil {
@@ -27,7 +26,7 @@ func (r *Register) Insert(i bt.Item) error {
 	return err
 }
 
-func (r *Register) SelectAll() ([]bt.Item, error) {
+func (r *Register) SelectAll() ([]Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register ORDER BY virtual_id"
 	rows, err := r.Query(query)
 	if err != nil {
@@ -35,9 +34,9 @@ func (r *Register) SelectAll() ([]bt.Item, error) {
 	}
 	defer rows.Close()
 
-	Items := []bt.Item{}
+	Items := []Item{}
 	for rows.Next() {
-		i := bt.Item{}
+		i := Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err
@@ -47,7 +46,7 @@ func (r *Register) SelectAll() ([]bt.Item, error) {
 	return Items, nil
 }
 
-func (r *Register) SelectAny(i bt.Item) ([]bt.Item, error) {
+func (r *Register) SelectAny(i Item) ([]Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register where 1=1"
 	var args []interface{}
 
@@ -71,9 +70,9 @@ func (r *Register) SelectAny(i bt.Item) ([]bt.Item, error) {
 	}
 	defer rows.Close()
 
-	Items := []bt.Item{}
+	Items := []Item{}
 	for rows.Next() {
-		i := bt.Item{}
+		i := Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err

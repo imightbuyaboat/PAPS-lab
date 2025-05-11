@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	bt "papslab/basic_types"
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
@@ -16,16 +14,6 @@ import (
 type SessionManager struct {
 	client *redis.Client
 	ctx    context.Context
-}
-
-func NewSessionID() (bt.SessionID, error) {
-	id, err := uuid.NewRandom()
-	return bt.SessionID(id), err
-}
-
-func ParseSessionID(s string) (bt.SessionID, error) {
-	id, err := uuid.Parse(s)
-	return bt.SessionID(id), err
 }
 
 func NewSessionManager() (*SessionManager, error) {
@@ -55,7 +43,7 @@ func NewSessionManager() (*SessionManager, error) {
 	return sm, nil
 }
 
-func (sm *SessionManager) Create(s *bt.Session) (*bt.SessionID, error) {
+func (sm *SessionManager) Create(s *Session) (*SessionID, error) {
 	id, err := NewSessionID()
 	if err != nil {
 		return nil, err
@@ -71,7 +59,7 @@ func (sm *SessionManager) Create(s *bt.Session) (*bt.SessionID, error) {
 	return &id, nil
 }
 
-func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
+func (sm *SessionManager) Check(id SessionID) (*Session, error) {
 	data, err := sm.client.HGetAll(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return nil, err
@@ -85,7 +73,7 @@ func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
 		return nil, fmt.Errorf("не удалось прочитать priveleged: %v", err)
 	}
 
-	session := &bt.Session{
+	session := &Session{
 		Login:      data["login"],
 		Useragent:  data["useragent"],
 		Priveleged: priveleged,
@@ -93,7 +81,7 @@ func (sm *SessionManager) Check(id bt.SessionID) (*bt.Session, error) {
 	return session, nil
 }
 
-func (sm *SessionManager) Delete(id bt.SessionID) error {
+func (sm *SessionManager) Delete(id SessionID) error {
 	deleted, err := sm.client.Del(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return err

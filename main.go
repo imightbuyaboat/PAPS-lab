@@ -1,51 +1,21 @@
 package main
 
 import (
-	"html/template"
 	"log"
 	"net/http"
-	passman "papslab/passwordmanager"
-	"papslab/register"
-	sessman "papslab/sessionmanager"
-	"papslab/studiodb"
-	"path/filepath"
+	"papslab/handler"
 
 	"github.com/gorilla/mux"
 )
 
-type Handler struct {
-	sm   *sessman.SessionManager
-	pm   *passman.PasswordManager
-	reg  *register.Register
-	tmpl *template.Template
-}
-
 const (
-	templateDir = "templates"
-	staticDir   = "static"
+	staticDir = "static"
 )
 
 func main() {
-	files, err := filepath.Glob(filepath.Join(templateDir, "*.html"))
+	handlers, err := handler.NewHandler()
 	if err != nil {
-		log.Fatalf("Ошибка при поиске файлов: %v", err)
-	}
-
-	newSM, err := sessman.NewSessionManager()
-	if err != nil {
-		log.Fatalf("Ошибка при подключении к redis: %v", err)
-	}
-
-	db, err := studiodb.NewDB()
-	if err != nil {
-		log.Fatalf("Ошибка при подключении к базе данных: %v", err)
-	}
-
-	handlers := &Handler{
-		sm:   newSM,
-		pm:   passman.NewPasswordManager(db),
-		reg:  register.NewRegister(db),
-		tmpl: template.Must(template.ParseFiles(files...)),
+		log.Fatalf("Ошибка: %v", err)
 	}
 
 	r := mux.NewRouter()
@@ -55,17 +25,17 @@ func main() {
 
 	checkSessionRouter := r.NewRoute().Subrouter()
 	checkSessionRouter.Use(handlers.CheckSessionMiddleWare)
-	checkSessionRouter.HandleFunc("/login", handlers.loginPage).Methods("GET")
-	checkSessionRouter.HandleFunc("/register", handlers.registerPage).Methods("GET")
+	checkSessionRouter.HandleFunc("/login", handlers.LoginPage).Methods("GET")
+	checkSessionRouter.HandleFunc("/register", handlers.RegisterPage).Methods("GET")
 
-	r.HandleFunc("/", handlers.mainPage).Methods("GET")
-	r.HandleFunc("/login", handlers.login).Methods("POST")
-	r.HandleFunc("/register", handlers.register).Methods("POST")
-	r.HandleFunc("/logout", handlers.logout).Methods("POST")
-	r.HandleFunc("/search", handlers.search).Methods("POST")
-	r.HandleFunc("/add", handlers.add).Methods("POST")
-	r.HandleFunc("/delete", handlers.delete).Methods("POST")
-	r.HandleFunc("/return", handlers.returnToMainPage).Methods("POST")
+	r.HandleFunc("/", handlers.MainPage).Methods("GET")
+	r.HandleFunc("/login", handlers.Login).Methods("POST")
+	r.HandleFunc("/register", handlers.Register).Methods("POST")
+	r.HandleFunc("/logout", handlers.Logout).Methods("POST")
+	r.HandleFunc("/search", handlers.Search).Methods("POST")
+	r.HandleFunc("/add", handlers.Add).Methods("POST")
+	r.HandleFunc("/delete", handlers.Delete).Methods("POST")
+	r.HandleFunc("/return", handlers.ReturnToMainPage).Methods("POST")
 
 	log.Println("starting server at :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

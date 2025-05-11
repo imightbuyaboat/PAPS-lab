@@ -1,26 +1,66 @@
-package main
+package handler
 
 import (
+	"fmt"
+	"html/template"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
-	bt "papslab/basic_types"
+	passman "papslab/passwordmanager"
+	"papslab/register"
 	sessman "papslab/sessionmanager"
+	"papslab/studiodb"
 )
 
-func (h *Handler) loginPage(w http.ResponseWriter, r *http.Request) {
+const (
+	templateDir = "templates"
+)
+
+type Handler struct {
+	sm   *sessman.SessionManager
+	pm   *passman.PasswordManager
+	reg  *register.Register
+	tmpl *template.Template
+}
+
+func NewHandler() (*Handler, error) {
+	files, err := filepath.Glob(filepath.Join(templateDir, "*.html"))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при поиске файлов: %v", err)
+	}
+
+	newSM, err := sessman.NewSessionManager()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подключении к redis: %v", err)
+	}
+
+	db, err := studiodb.NewDB()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подключении к базе данных: %v", err)
+	}
+
+	return &Handler{
+		sm:   newSM,
+		pm:   passman.NewPasswordManager(db),
+		reg:  register.NewRegister(db),
+		tmpl: template.Must(template.ParseFiles(files...)),
+	}, nil
+}
+
+func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 	err := h.tmpl.ExecuteTemplate(w, "login.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	login := r.FormValue("login")
 	password := r.FormValue("password")
 
-	exists, isPriv, err := h.pm.Check(&bt.User{
+	exists, isPriv, err := h.pm.Check(&passman.User{
 		Login:    login,
 		Password: password,
 	})
@@ -38,7 +78,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := h.sm.Create(&bt.Session{
+	sessionID, err := h.sm.Create(&sessman.Session{
 		Login:      login,
 		Useragent:  r.UserAgent(),
 		Priveleged: isPriv,
@@ -57,14 +97,14 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) registerPage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RegisterPage(w http.ResponseWriter, r *http.Request) {
 	err := h.tmpl.ExecuteTemplate(w, "register.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	login := r.FormValue("login")
 	password := r.FormValue("password")
 
@@ -94,7 +134,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.pm.Insert(&bt.User{
+	err = h.pm.Insert(&passman.User{
 		Login:    login,
 		Password: password,
 	})
@@ -103,7 +143,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := h.sm.Create(&bt.Session{
+	sessionID, err := h.sm.Create(&sessman.Session{
 		Login:      login,
 		Useragent:  r.UserAgent(),
 		Priveleged: false,
@@ -122,7 +162,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err == http.ErrNoCookie {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -149,7 +189,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
-func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 	session, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -164,7 +204,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.reg.Insert(
-		bt.Item{
+		register.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -177,7 +217,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	session, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -205,7 +245,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	var isPriv bool
 
 	session, err := h.checkSession(r)
@@ -221,7 +261,7 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	items, err := h.reg.SelectAny(
-		bt.Item{
+		register.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -233,7 +273,7 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []bt.Item
+		Items       []register.Item
 		ShowButtons bool
 	}{
 		Items:       items,
@@ -245,11 +285,11 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) returnToMainPage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ReturnToMainPage(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 	var isPriv bool
 
 	session, err := h.checkSession(r)
@@ -271,7 +311,7 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []bt.Item
+		Items       []register.Item
 		ShowButtons bool
 	}{
 		Items:       items,
@@ -283,7 +323,7 @@ func (h *Handler) mainPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) checkSession(r *http.Request) (*bt.Session, error) {
+func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 	cookieSessionID, err := r.Cookie("session_id")
 	if err == http.ErrNoCookie {
 		return nil, nil

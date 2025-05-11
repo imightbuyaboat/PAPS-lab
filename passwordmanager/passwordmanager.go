@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	bt "papslab/basic_types"
 	"papslab/studiodb"
 )
 
@@ -12,17 +11,12 @@ type PasswordManager struct {
 	*studiodb.DB
 }
 
-func CreateHash(password string) string {
-	h := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(h[:])
-}
-
 func NewPasswordManager(db *studiodb.DB) *PasswordManager {
 	return &PasswordManager{db}
 }
 
-func (pm *PasswordManager) Insert(in *bt.User) error {
-	hash := CreateHash(in.Password)
+func (pm *PasswordManager) Insert(in *User) error {
+	hash := pm.createHash(in.Password)
 
 	query := "INSERT INTO users (login, hash) VALUES ($1, $2)"
 
@@ -30,7 +24,7 @@ func (pm *PasswordManager) Insert(in *bt.User) error {
 	return err
 }
 
-func (pm *PasswordManager) Check(in *bt.User) (exists bool, isPriv bool, err error) {
+func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error) {
 	query := "SELECT hash, priveleged FROM users where login = $1"
 	row := pm.QueryRow(query, in.Login)
 
@@ -45,7 +39,7 @@ func (pm *PasswordManager) Check(in *bt.User) (exists bool, isPriv bool, err err
 		return false, false, err
 	}
 
-	hash := CreateHash(in.Password)
+	hash := pm.createHash(in.Password)
 	if hashFromDB == hash {
 		return true, isPrivileged, nil
 	}
@@ -57,4 +51,9 @@ func (pm *PasswordManager) IsLoginAvailable(login string) (bool, error) {
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE login=$1)`
 	err := pm.QueryRow(query, login).Scan(&exists)
 	return exists, err
+}
+
+func (pm *PasswordManager) createHash(password string) string {
+	h := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(h[:])
 }
