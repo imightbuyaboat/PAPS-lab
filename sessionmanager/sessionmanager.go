@@ -29,9 +29,11 @@ func NewSessionManager() (*SessionManager, error) {
 	password := os.Getenv("REDIS_PASSWORD")
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     host + ":" + port,
-		Password: password,
-		DB:       0,
+		Addr:         host + ":" + port,
+		Password:     password,
+		DB:           0,
+		PoolSize:     20,
+		MinIdleConns: 5,
 	})
 
 	sm.client = client
