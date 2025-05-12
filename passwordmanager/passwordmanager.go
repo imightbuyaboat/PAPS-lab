@@ -1,9 +1,7 @@
 package passwordmanager
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"papslab/studiodb"
 )
 
@@ -16,11 +14,11 @@ func NewPasswordManager(db *studiodb.DB) *PasswordManager {
 }
 
 func (pm *PasswordManager) Insert(in *User) error {
-	hash := pm.createHash(in.Password)
+	hash := createHash(in.Password)
 
 	query := "INSERT INTO users (login, hash) VALUES ($1, $2)"
 
-	_, err := pm.Exec(query, in.Login, hash)
+	_, err := pm.Exec(query, in.Login, hash.String())
 	return err
 }
 
@@ -39,8 +37,8 @@ func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error)
 		return false, false, err
 	}
 
-	hash := pm.createHash(in.Password)
-	if hashFromDB == hash {
+	hash := createHash(in.Password)
+	if hashFromDB == hash.String() {
 		return true, isPrivileged, nil
 	}
 	return false, false, nil
@@ -51,9 +49,4 @@ func (pm *PasswordManager) IsLoginAvailable(login string) (bool, error) {
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE login=$1)`
 	err := pm.QueryRow(query, login).Scan(&exists)
 	return exists, err
-}
-
-func (pm *PasswordManager) createHash(password string) string {
-	h := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(h[:])
 }
