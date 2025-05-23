@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	passman "papslab/passwordmanager"
-	"papslab/register"
 	sessman "papslab/sessionmanager"
 	"papslab/studiodb"
+	passman "papslab/studiodb/passwordmanager"
+	"papslab/studiodb/register"
 )
 
 const (
