@@ -1,4 +1,4 @@
-package sessionmanager
+package session
 
 import (
 	"github.com/google/uuid"

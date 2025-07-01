@@ -1,4 +1,4 @@
-package register
+package item
 
 type Item struct {
 	Id           int

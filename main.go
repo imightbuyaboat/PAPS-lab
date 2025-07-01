@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"papslab/handler"
+	"papslab/session_manager"
+	"papslab/storage"
 
 	"github.com/gorilla/mux"
 )
@@ -13,7 +15,17 @@ const (
 )
 
 func main() {
-	handlers, err := handler.NewHandler()
+	sm, err := session_manager.NewRedisSessionManager()
+	if err != nil {
+		log.Fatalf("Ошибка: %v", err)
+	}
+
+	strg, err := storage.NewPostgresStorage()
+	if err != nil {
+		log.Fatalf("Ошибка: %v", err)
+	}
+
+	handlers, err := handler.NewHandler(sm, strg)
 	if err != nil {
 		log.Fatalf("Ошибка: %v", err)
 	}

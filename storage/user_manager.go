@@ -1,30 +1,22 @@
-package passwordmanager
+package storage
 
 import (
 	"database/sql"
-	"papslab/studiodb"
+	"papslab/user"
 )
 
-type PasswordManager struct {
-	*studiodb.DB
-}
-
-func NewPasswordManager(db *studiodb.DB) *PasswordManager {
-	return &PasswordManager{db}
-}
-
-func (pm *PasswordManager) Insert(in *User) error {
+func (s *PostgresStorage) InsertUser(in *user.User) error {
 	hash := createHash(in.Password)
 
 	query := "INSERT INTO users (login, hash) VALUES ($1, $2)"
 
-	_, err := pm.Exec(query, in.Login, hash.String())
+	_, err := s.Exec(query, in.Login, hash.String())
 	return err
 }
 
-func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error) {
+func (s *PostgresStorage) CheckUser(in *user.User) (exists bool, isPriv bool, err error) {
 	query := "SELECT hash, priveleged FROM users where login = $1"
-	row := pm.QueryRow(query, in.Login)
+	row := s.QueryRow(query, in.Login)
 
 	var hashFromDB string
 	var isPrivileged bool
@@ -44,9 +36,9 @@ func (pm *PasswordManager) Check(in *User) (exists bool, isPriv bool, err error)
 	return false, false, nil
 }
 
-func (pm *PasswordManager) IsLoginAvailable(login string) (bool, error) {
+func (s *PostgresStorage) IsLoginAvailable(login string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE login=$1)`
-	err := pm.QueryRow(query, login).Scan(&exists)
+	err := s.QueryRow(query, login).Scan(&exists)
 	return exists, err
 }

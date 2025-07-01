@@ -1,42 +1,34 @@
-package register
+package storage
 
 import (
-	"papslab/studiodb"
+	"papslab/item"
 	"strconv"
 )
 
-type Register struct {
-	*studiodb.DB
-}
-
-func NewRegister(db *studiodb.DB) *Register {
-	return &Register{db}
-}
-
-func (r *Register) Insert(i Item) error {
+func (s *PostgresStorage) InsertItem(i item.Item) error {
 	var maxVirtualID int
-	err := r.QueryRow("SELECT COALESCE(MAX(virtual_id), -1) FROM register").Scan(&maxVirtualID)
+	err := s.QueryRow("SELECT COALESCE(MAX(virtual_id), -1) FROM register").Scan(&maxVirtualID)
 	if err != nil {
 		return err
 	}
 	newVirtualID := maxVirtualID + 1
 
 	query := "INSERT INTO register (organization, city, phone, virtual_id) VALUES ($1, $2, $3, $4)"
-	_, err = r.Exec(query, i.Organization, i.City, i.Phone, newVirtualID)
+	_, err = s.Exec(query, i.Organization, i.City, i.Phone, newVirtualID)
 	return err
 }
 
-func (r *Register) SelectAll() ([]Item, error) {
+func (s *PostgresStorage) SelectAllItems() ([]item.Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register ORDER BY virtual_id"
-	rows, err := r.Query(query)
+	rows, err := s.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	Items := []Item{}
+	Items := []item.Item{}
 	for rows.Next() {
-		i := Item{}
+		i := item.Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err
@@ -46,7 +38,7 @@ func (r *Register) SelectAll() ([]Item, error) {
 	return Items, nil
 }
 
-func (r *Register) SelectAny(i Item) ([]Item, error) {
+func (s *PostgresStorage) SelectAnyItems(i item.Item) ([]item.Item, error) {
 	query := "SELECT organization, city, phone, virtual_id FROM register where 1=1"
 	var args []interface{}
 
@@ -64,15 +56,15 @@ func (r *Register) SelectAny(i Item) ([]Item, error) {
 	}
 	query += " ORDER BY virtual_id"
 
-	rows, err := r.Query(query, args...)
+	rows, err := s.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	Items := []Item{}
+	Items := []item.Item{}
 	for rows.Next() {
-		i := Item{}
+		i := item.Item{}
 		err := rows.Scan(&i.Organization, &i.City, &i.Phone, &i.Id)
 		if err != nil {
 			return nil, err
@@ -82,19 +74,19 @@ func (r *Register) SelectAny(i Item) ([]Item, error) {
 	return Items, nil
 }
 
-func (r *Register) Delete(virtualID int) error {
+func (s *PostgresStorage) DeleteItem(virtualID int) error {
 	var realID int
-	err := r.QueryRow("SELECT id FROM register WHERE virtual_id = $1", virtualID).Scan(&realID)
+	err := s.QueryRow("SELECT id FROM register WHERE virtual_id = $1", virtualID).Scan(&realID)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.Exec("DELETE FROM register WHERE id = $1", realID)
+	_, err = s.Exec("DELETE FROM register WHERE id = $1", realID)
 	if err != nil {
 		return err
 	}
 
-	rows, err := r.Query("SELECT id FROM register ORDER BY virtual_id")
+	rows, err := s.Query("SELECT id FROM register ORDER BY virtual_id")
 	if err != nil {
 		return err
 	}
@@ -106,7 +98,7 @@ func (r *Register) Delete(virtualID int) error {
 		if err := rows.Scan(&currentRealID); err != nil {
 			return err
 		}
-		_, err := r.Exec("UPDATE register SET virtual_id = $1 WHERE id = $2", newVirtualID, currentRealID)
+		_, err := s.Exec("UPDATE register SET virtual_id = $1 WHERE id = $2", newVirtualID, currentRealID)
 		if err != nil {
 			return err
 		}

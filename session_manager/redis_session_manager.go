@@ -1,9 +1,10 @@
-package sessionmanager
+package session_manager
 
 import (
 	"context"
 	"fmt"
 	"os"
+	"papslab/session"
 	"strconv"
 	"time"
 
@@ -11,13 +12,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type SessionManager struct {
+type RedisSessionManager struct {
 	client *redis.Client
 	ctx    context.Context
 }
 
-func NewSessionManager() (*SessionManager, error) {
-	sm := &SessionManager{}
+func NewRedisSessionManager() (*RedisSessionManager, error) {
+	sm := &RedisSessionManager{}
 
 	err := godotenv.Load()
 	if err != nil {
@@ -45,8 +46,8 @@ func NewSessionManager() (*SessionManager, error) {
 	return sm, nil
 }
 
-func (sm *SessionManager) Create(s *Session) (*SessionID, error) {
-	id, err := NewSessionID()
+func (sm *RedisSessionManager) Create(s *session.Session) (*session.SessionID, error) {
+	id, err := session.NewSessionID()
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,7 @@ func (sm *SessionManager) Create(s *Session) (*SessionID, error) {
 	return &id, nil
 }
 
-func (sm *SessionManager) Check(id SessionID) (*Session, error) {
+func (sm *RedisSessionManager) Check(id session.SessionID) (*session.Session, error) {
 	data, err := sm.client.HGetAll(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return nil, err
@@ -75,7 +76,7 @@ func (sm *SessionManager) Check(id SessionID) (*Session, error) {
 		return nil, fmt.Errorf("не удалось прочитать priveleged: %v", err)
 	}
 
-	session := &Session{
+	session := &session.Session{
 		Login:      data["login"],
 		Useragent:  data["useragent"],
 		Priveleged: priveleged,
@@ -83,7 +84,7 @@ func (sm *SessionManager) Check(id SessionID) (*Session, error) {
 	return session, nil
 }
 
-func (sm *SessionManager) Delete(id SessionID) error {
+func (sm *RedisSessionManager) Delete(id session.SessionID) error {
 	deleted, err := sm.client.Del(sm.ctx, "session:"+id.String()).Result()
 	if err != nil {
 		return err

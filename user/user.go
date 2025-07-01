@@ -1,4 +1,4 @@
-package passwordmanager
+package user
 
 type User struct {
 	Login    string

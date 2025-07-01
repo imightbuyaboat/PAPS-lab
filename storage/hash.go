@@ -1,4 +1,4 @@
-package passwordmanager
+package storage
 
 import (
 	"crypto/sha256"

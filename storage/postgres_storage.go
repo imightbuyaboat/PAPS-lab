@@ -1,4 +1,4 @@
-package studiodb
+package storage
 
 import (
 	"database/sql"
@@ -11,11 +11,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type DB struct {
+type PostgresStorage struct {
 	*sql.DB
 }
 
-func NewDB() (*DB, error) {
+func NewPostgresStorage() (*PostgresStorage, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
@@ -44,5 +44,5 @@ func NewDB() (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{db}, nil
+	return &PostgresStorage{db}, nil
 }

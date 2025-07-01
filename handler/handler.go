@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"papslab/item"
+	"papslab/session"
+	"papslab/user"
 	"path/filepath"
 	"strconv"
 	"time"
-
-	sessman "papslab/sessionmanager"
-	"papslab/studiodb"
-	passman "papslab/studiodb/passwordmanager"
-	"papslab/studiodb/register"
 )
 
 const (
@@ -19,32 +17,20 @@ const (
 )
 
 type Handler struct {
-	sm   *sessman.SessionManager
-	pm   *passman.PasswordManager
-	reg  *register.Register
+	sm   SessionManager
+	strg Storage
 	tmpl *template.Template
 }
 
-func NewHandler() (*Handler, error) {
+func NewHandler(sm SessionManager, strg Storage) (*Handler, error) {
 	files, err := filepath.Glob(filepath.Join(templateDir, "*.html"))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при поиске файлов: %v", err)
 	}
 
-	newSM, err := sessman.NewSessionManager()
-	if err != nil {
-		return nil, fmt.Errorf("ошибка при подключении к redis: %v", err)
-	}
-
-	db, err := studiodb.NewDB()
-	if err != nil {
-		return nil, fmt.Errorf("ошибка при подключении к базе данных: %v", err)
-	}
-
 	return &Handler{
-		sm:   newSM,
-		pm:   passman.NewPasswordManager(db),
-		reg:  register.NewRegister(db),
+		sm:   sm,
+		strg: strg,
 		tmpl: template.Must(template.ParseFiles(files...)),
 	}, nil
 }
@@ -60,7 +46,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	login := r.FormValue("login")
 	password := r.FormValue("password")
 
-	exists, isPriv, err := h.pm.Check(&passman.User{
+	exists, isPriv, err := h.strg.CheckUser(&user.User{
 		Login:    login,
 		Password: password,
 	})
@@ -78,7 +64,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := h.sm.Create(&sessman.Session{
+	sessionID, err := h.sm.Create(&session.Session{
 		Login:      login,
 		Useragent:  r.UserAgent(),
 		Priveleged: isPriv,
@@ -119,7 +105,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := h.pm.IsLoginAvailable(login)
+	exists, err := h.strg.IsLoginAvailable(login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -134,7 +120,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.pm.Insert(&passman.User{
+	err = h.strg.InsertUser(&user.User{
 		Login:    login,
 		Password: password,
 	})
@@ -143,7 +129,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := h.sm.Create(&sessman.Session{
+	sessionID, err := h.sm.Create(&session.Session{
 		Login:      login,
 		Useragent:  r.UserAgent(),
 		Priveleged: false,
@@ -163,7 +149,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	session, err := r.Cookie("session_id")
+	sess, err := r.Cookie("session_id")
 	if err == http.ErrNoCookie {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -172,7 +158,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := sessman.ParseSessionID(session.Value)
+	sessionID, err := session.ParseSessionID(sess.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -183,28 +169,28 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Expires = time.Now().AddDate(0, 0, -1)
-	http.SetCookie(w, session)
+	sess.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, sess)
 
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
 func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
+	sess, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if session == nil {
+	if sess == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
-	} else if !session.Priveleged {
+	} else if !sess.Priveleged {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	err = h.reg.Insert(
-		register.Item{
+	err = h.strg.InsertItem(
+		item.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -218,15 +204,15 @@ func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	session, err := h.checkSession(r)
+	sess, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if session == nil {
+	if sess == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
-	} else if !session.Priveleged {
+	} else if !sess.Priveleged {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -237,7 +223,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.reg.Delete(id)
+	err = h.strg.DeleteItem(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -248,20 +234,20 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	var isPriv bool
 
-	session, err := h.checkSession(r)
+	sess, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if session == nil {
+	if sess == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	} else {
-		isPriv = session.Priveleged
+		isPriv = sess.Priveleged
 	}
 
-	items, err := h.reg.SelectAny(
-		register.Item{
+	items, err := h.strg.SelectAnyItems(
+		item.Item{
 			Id:           0,
 			Organization: r.FormValue("organization"),
 			City:         r.FormValue("city"),
@@ -273,7 +259,7 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []register.Item
+		Items       []item.Item
 		ShowButtons bool
 	}{
 		Items:       items,
@@ -292,26 +278,26 @@ func (h *Handler) ReturnToMainPage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 	var isPriv bool
 
-	session, err := h.checkSession(r)
+	sess, err := h.checkSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if session == nil {
+	if sess == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	} else {
-		isPriv = session.Priveleged
+		isPriv = sess.Priveleged
 	}
 
-	items, err := h.reg.SelectAll()
+	items, err := h.strg.SelectAllItems()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "index.html", struct {
-		Items       []register.Item
+		Items       []item.Item
 		ShowButtons bool
 	}{
 		Items:       items,
@@ -323,7 +309,7 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
+func (h *Handler) checkSession(r *http.Request) (*session.Session, error) {
 	cookieSessionID, err := r.Cookie("session_id")
 	if err == http.ErrNoCookie {
 		return nil, nil
@@ -331,7 +317,7 @@ func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 		return nil, err
 	}
 
-	sessionID, err := sessman.ParseSessionID(cookieSessionID.Value)
+	sessionID, err := session.ParseSessionID(cookieSessionID.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -341,12 +327,12 @@ func (h *Handler) checkSession(r *http.Request) (*sessman.Session, error) {
 
 func (h *Handler) CheckSessionMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := h.checkSession(r)
+		sess, err := h.checkSession(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if session != nil {
+		if sess != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
